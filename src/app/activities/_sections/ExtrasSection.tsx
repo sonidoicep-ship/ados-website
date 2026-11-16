@@ -639,7 +639,7 @@ export function ExtrasSection() {
         <div className="space-y-2">
           <div className="flex justify-between items-center">
             <h2 className={sectionTitleClass}>Extras</h2>
-            {isAdmin && (
+            {isAdmin && !locked && (
               <Button onClick={startEditing} variant="ghost" size="sm" className={toolbarButtonClass}>
                 Editar
               </Button>

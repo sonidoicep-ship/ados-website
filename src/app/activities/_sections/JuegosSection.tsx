@@ -712,7 +712,7 @@ export function JuegosSection() {
                 </span>
               </div>
             </Reveal>
-            {isAdmin && (
+            {isAdmin && !locked && (
               <Button onClick={startEditing} variant="ghost" size="sm" className={toolbarButtonClass}>
                 Editar
               </Button>

@@ -89,7 +89,7 @@ test.describe("Activities", () => {
     await expect(page.locator("[data-sonner-toast]")).toHaveCount(0);
   });
 
-  test("Lock state shows explanation and blocks editing", async ({ page }) => {
+  test("Admin can lock and then unlock an activity from General", async ({ page }) => {
     const loginPage = new LoginPage(page);
     await loginPage.login(TEST_USERS.admin.password, TEST_USERS.admin.role);
 
@@ -108,13 +108,22 @@ test.describe("Activities", () => {
     const editUrl = page.url().replace(/\/activities\/(\d+)(?:\/.*)?$/, "/activities/$1/general");
     await page.goto(editUrl);
 
+    // The switch is checked while unlocked (checked = !locked)
     const lockSwitch = page.getByRole("switch").first();
-    if (!(await lockSwitch.isChecked())) {
-      await lockSwitch.check();
+    if (await lockSwitch.isChecked()) {
+      await lockSwitch.click();
+      await page.getByRole("button", { name: "Bloquear" }).click();
     }
 
-    await expect(page.getByText(/Bloqueada/)).toBeVisible();
+    await expect(page.getByText("Bloqueada", { exact: true })).toBeVisible();
     await expect(page.getByText(/Solo lectura para todos/)).toBeVisible();
     await expect(page.getByRole("button", { name: "Editar" })).not.toBeVisible();
+
+    // Regression: the switch must stay reachable while locked, otherwise the activity can never be unlocked
+    await lockSwitch.click();
+    await page.getByRole("button", { name: "Desbloquear" }).click();
+
+    await expect(page.getByText("Desbloqueada", { exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Editar" })).toBeVisible();
   });
 });
