@@ -494,7 +494,7 @@ export function InvitacionesSection() {
                 </span>
               </div>
             </Reveal>
-            {isAdmin && (
+            {isAdmin && !locked && (
               <Button onClick={startEditing} variant="ghost" size="sm" className={toolbarButtonClass}>
                 Editar
               </Button>

@@ -94,7 +94,7 @@ export function BibliaSection() {
               </span>
             </div>
           </Reveal>
-          {canEdit && (
+          {(canEdit || editing) && (
             <Button
               onClick={() => setEditing((v) => !v)}
               variant="ghost"

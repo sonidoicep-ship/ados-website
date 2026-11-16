@@ -5,7 +5,7 @@ export class LoginPage extends BasePage {
   readonly passwordInput: Locator;
   readonly submitButton: Locator;
   readonly adminToggle: Locator;
-  readonly lockIcon: Locator;
+  readonly roleSelectorToggle: Locator;
   readonly errorMessage: Locator;
   readonly showPasswordButton: Locator;
 
@@ -14,7 +14,7 @@ export class LoginPage extends BasePage {
     this.passwordInput = page.getByRole("textbox", { name: "Contraseña" });
     this.submitButton = page.getByRole("button", { name: /Ingresar como/ });
     this.adminToggle = page.getByRole("switch", { name: /admin/i });
-    this.lockIcon = page.getByRole("button", { name: "Mostrar selector de rol" });
+    this.roleSelectorToggle = page.getByRole("button", { name: /Cambiar rol|Ocultar selector de rol/ });
     this.errorMessage = page.getByText("Contraseña incorrecta");
     this.showPasswordButton = page.getByRole("button", { name: "Mostrar contraseña" });
   }
@@ -27,7 +27,7 @@ export class LoginPage extends BasePage {
     await this.goto();
 
     if (role === "admin") {
-      await this.lockIcon.dblclick();
+      await this.roleSelectorToggle.click();
       await this.adminToggle.click();
     }
 

@@ -76,6 +76,10 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: false, error: "Actividad no encontrada" }, { status: 400 });
       }
 
+      if (currentAct[0].locked) {
+        return apiForbidden("La actividad está bloqueada");
+      }
+
       dbVersion = currentAct[0]?.version || 1;
       const clientVersion = data.version || 1;
 
@@ -171,6 +175,16 @@ export async function DELETE(request: NextRequest) {
     const { id } = parsed.data;
 
     await db.transaction(async (tx) => {
+      // FOR UPDATE: a concurrent lock (PATCH bumps this row) can't slip in between check and delete
+      const [target] = await tx
+        .select({ locked: schema.activities.locked })
+        .from(schema.activities)
+        .where(eq(schema.activities.id, id))
+        .for("update");
+      if (target?.locked) {
+        throw new AppError("La actividad está bloqueada", 403);
+      }
+
       await tx
         .delete(schema.activityParticipants)
         .where(eq(schema.activityParticipants.activityId, id));

@@ -11,8 +11,9 @@ export class ActivitiesPage extends BasePage {
   constructor(page: Page) {
     super(page);
     this.header = page.getByRole("heading", { name: "Actividades" }).first();
-    this.addActivityButton = page.getByRole("button", { name: /agregar actividad/i });
-    this.activityList = page.locator(".cursor-pointer");
+    this.addActivityButton = page.getByRole("button", { name: /nueva actividad/i });
+    // Each activity row is a button whose name ends with its attendee count
+    this.activityList = page.getByRole("button", { name: /\d+ presentes?$/ });
     this.newActivityModal = page.getByRole("dialog");
   }
 
@@ -37,6 +38,8 @@ export class ActivitiesPage extends BasePage {
   }
 
   async getActivityCount(): Promise<number> {
+    // count() doesn't wait: without this the list is still loading and every caller skips
+    await expect(this.page.getByText(/actividad(es)? registradas?/)).toBeVisible();
     return this.activityList.count();
   }
 
