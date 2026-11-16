@@ -51,7 +51,8 @@ export function AppDrawer({ open, onOpenChange }: AppDrawerProps) {
   ];
 
   const isActive = (href: string) =>
-    href === "/" ? pathname === "/" : pathname.startsWith(href);
+    // Podio is entered from the dashboard, so the dashboard stays highlighted there
+    href === "/" ? pathname === "/" || pathname === "/podio" : pathname.startsWith(href);
 
   const handleNavClick = (href: string) => {
     onOpenChange(false);

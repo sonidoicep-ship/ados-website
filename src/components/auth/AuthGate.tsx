@@ -45,6 +45,7 @@ function DbErrorScreen({ error, onRetry }: DbErrorScreenProps) {
 
 function getPageTitle(pathname: string): string {
   if (pathname === "/") return "Dashboard";
+  if (pathname === "/podio") return "Podio";
   if (pathname === "/calendar") return "Cumpleaños";
   if (pathname === "/activities") return "Actividades";
   if (pathname === "/participants") return "Jugadores";

@@ -1,357 +1,43 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { useApp } from "@/hooks/useApp";
+import Link from "next/link";
 import { MotionConfig } from "framer-motion";
-import { ChevronLeft, Award, ClipboardList } from "lucide-react";
-import { Empty } from "@/components/ui/Common";
-import { Avatar } from "@/components/ui/Avatar";
+import { ChevronRight, Trophy } from "lucide-react";
+import { useApp } from "@/hooks/useApp";
 import { Skeleton } from "@/components/ui/skeleton";
-import { DetailSheet } from "@/components/ui/DetailSheet";
-import { GroupedList } from "@/components/ui/GroupedList";
-import {
-  ChipFilter,
-  CountUp,
-  EmptyBlock,
-  LeaderRow,
-  Reveal,
-  SectionTitle,
-  SegmentedControl,
-} from "@/app/_components/home-ui";
-import { cn, formatDate } from "@/lib/utils";
-import { actRankingPtsDetails } from "@/lib/calc";
-import type { ParticipantBasic, Activity, Invitacion } from "@/lib/types";
+import { CountUp, Reveal } from "@/app/_components/home-ui";
+import { AttendanceChart } from "@/app/_components/AttendanceChart";
+import { cn, formatDate, getTodayDateString } from "@/lib/utils";
+import type { Activity } from "@/lib/types";
 
-interface RankingWithStats extends ParticipantBasic {
-  total: number;
-  gf: number;
-  gh: number;
-  gb: number;
-  acts: number;
-  goals?: number;
-}
-
-interface InvitacionWithActivity {
-  inv: Invitacion;
-  activity: Activity;
-}
-
-interface InvitacionRanking extends ParticipantBasic {
-  invitedCount: number;
-  invitaciones: InvitacionWithActivity[];
-}
-
-const RANKING_METRICS = [
-  { key: "total", label: "Puntos", Icon: Award },
-  { key: "acts", label: "Asist.", Icon: ClipboardList },
-] as const;
-
-type RankingMetricKey = (typeof RANKING_METRICS)[number]["key"];
-
-type ScorerGender = "all" | "M" | "F";
-
-const SCORER_GENDERS = [
-  { key: "all", label: "Global" },
-  { key: "M", label: "Varones" },
-  { key: "F", label: "Mujeres" },
-] as const;
-
-type ScorerSport = "all" | "f" | "h" | "b";
-
-const SCORER_SPORTS = [
-  { key: "all", label: "Todos" },
-  { key: "f", label: "Fútbol" },
-  { key: "h", label: "Handball" },
-  { key: "b", label: "Básquet" },
-] as const;
-
-// Goal totals per sport as they come from the rankings: gf / gh / gb
-const SPORT_FIELD = { f: "gf", h: "gh", b: "gb" } as const;
-
-function scorersEmptyText(gender: ScorerGender, sport: ScorerSport): string {
-  if (gender === "all" && sport === "all") return "Aún no hay goles registrados";
-  const sportPart =
-    sport === "all"
-      ? ""
-      : ` de ${SCORER_SPORTS.find((s) => s.key === sport)?.label.toLowerCase()}`;
-  const genderPart = gender === "all" ? "" : gender === "M" ? " (varones)" : " (mujeres)";
-  return `Aún no hay goles${sportPart}${genderPart}`;
-}
-
-function RankingDetailView({
-  player,
-  activities,
-  participants,
-  onBack,
-}: {
-  player: RankingWithStats;
-  activities: Activity[];
-  participants: ParticipantBasic[];
-  onBack: () => void;
-}) {
-  const activityHistory = useMemo(() => {
-    return activities
-      .map((activity) => {
-        const details = actRankingPtsDetails(player.id, activity, participants);
-        const total = details.reduce((sum, detail) => sum + detail.pts, 0);
-        return { activity, details, total };
-      })
-      .filter((item) => item.details.length > 0)
-      .sort(
-        (a, b) =>
-          new Date(b.activity.fecha).getTime() - new Date(a.activity.fecha).getTime(),
-      );
-  }, [activities, participants, player.id]);
-
-  const total = activityHistory.reduce((sum, item) => sum + item.total, 0);
-
-  return (
-    <>
-      {/* Back button + player header */}
-      <div className="flex items-center gap-3 mb-4">
-        <button
-          onClick={onBack}
-          className="min-w-[44px] min-h-[44px] flex items-center justify-center -ml-2 rounded-full hover:bg-muted transition-colors"
-        >
-          <ChevronLeft className="w-5 h-5" />
-        </button>
-        <Avatar p={player} size={48} />
-        <div className="flex-1 min-w-0">
-          <div className="font-black text-lg text-foreground truncate">
-            {player.nombre} {player.apellido}
-          </div>
-          <div className="text-xs font-bold text-text-muted">
-            {activityHistory.length} actividad{activityHistory.length !== 1 ? "es" : ""} con puntos
-          </div>
-        </div>
-      </div>
-
-      {/* Total points card */}
-      <div className="bg-primary text-white rounded-2xl p-4 text-center mb-5 shadow-inner">
-        <div className="text-4xl font-black tabular-nums">{total}</div>
-        <div className="text-[10px] font-black uppercase tracking-widest opacity-80 mt-1">
-          Puntos Totales
-        </div>
-      </div>
-
-      {/* Activity history */}
-      {activityHistory.length > 0 ? (
-        <div className="flex flex-col gap-3">
-          {activityHistory.map(({ activity, details, total: activityTotal }) => (
-            <div
-              key={activity.id}
-              className="bg-primary/5 rounded-2xl border border-primary/15 p-4"
-            >
-              <div className="flex items-start justify-between gap-3 mb-3">
-                <div className="min-w-0">
-                  <div className="font-black text-foreground truncate">
-                    {activity.titulo || formatDate(activity.fecha)}
-                  </div>
-                  <div className="text-xs font-bold text-text-muted mt-1">
-                    {formatDate(activity.fecha)}
-                  </div>
-                </div>
-                <div className="bg-primary/10 text-primary rounded-xl px-3 py-1 text-sm font-black tabular-nums shrink-0">
-                  {activityTotal >= 0 ? "+" : ""}
-                  {activityTotal}
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-2">
-                {details.map((detail, index) => (
-                  <div
-                    key={`${detail.type}-${detail.label}-${index}`}
-                    className="flex items-center justify-between gap-3 bg-white rounded-xl px-3 py-2 border border-primary/10"
-                  >
-                    <div className="min-w-0">
-                      <div className="text-sm font-bold text-foreground truncate">
-                        {detail.label}
-                      </div>
-                      {detail.sublabel && (
-                        <div className="text-xs font-medium text-text-muted truncate">
-                          {detail.sublabel}
-                        </div>
-                      )}
-                    </div>
-                    <div
-                      className={cn(
-                        "font-black text-sm tabular-nums shrink-0",
-                        detail.pts >= 0 ? "text-green-600" : "text-red-500",
-                      )}
-                    >
-                      {detail.pts >= 0 ? "+" : ""}
-                      {detail.pts}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="text-center text-text-muted text-sm py-10 font-medium italic">
-          Sin puntos registrados aún
-        </div>
-      )}
-    </>
-  );
-}
+const cardLinkClass =
+  "block rounded-3xl border border-border bg-card transition-colors hover:bg-muted/50 active:bg-muted";
 
 export default function Page() {
   const { db, isLoading } = useApp();
-  const { participants, activities, rankings } = db;
-  // Sheet states
-  const [goleadoresOpen, setGoleadoresOpen] = useState(false);
-  const [rankingOpen, setRankingOpen] = useState(false);
-  const [invitacionesOpen, setInvitacionesOpen] = useState(false);
-
-  const [rankingMetric, setRankingMetric] = useState<RankingMetricKey>("total");
-  const [selectedInviter, setSelectedInviter] =
-    useState<InvitacionRanking | null>(null);
-  const [selectedRankingPlayer, setSelectedRankingPlayer] =
-    useState<RankingWithStats | null>(null);
-  const [rankingView, setRankingView] = useState<"list" | "detail">("list");
-  const [selectedActivityIds, setSelectedActivityIds] = useState<number[]>([]);
-  const [scorerGender, setScorerGender] = useState<ScorerGender>("all");
-  const [scorerSport, setScorerSport] = useState<ScorerSport>("all");
-
-  const calculatedRankings = useMemo(() => {
-    return (participants || [])
-      .map((p) => {
-        const stats = (rankings || []).find((r) => r.id === p.id) || {
-          total: 0,
-          gf: 0,
-          gh: 0,
-          gb: 0,
-          acts: 0,
-        };
-        return { ...p, ...stats };
-      })
-      .sort((a, b) => {
-        const valA = a[rankingMetric] || 0;
-        const valB = b[rankingMetric] || 0;
-        return valB - valA;
-      });
-  }, [participants, rankings, rankingMetric]);
-
-  const stats = useMemo(() => {
-    const jugadoresActivos = (participants || []).filter((p) =>
-      (activities || []).some((a) => (a.asistentes || []).includes(p.id)),
-    ).length;
-
-    const totalGoles = (activities || []).reduce(
-      (acc, a) => acc + (a.goles || []).reduce((s, g) => s + g.cant, 0),
-      0,
-    );
-
-    const totalPlayers = (participants || []).length;
-
-    const allScorers = calculatedRankings
-      .map((p) => ({
-        ...p,
-        goals: (p.gf || 0) + (p.gh || 0) + (p.gb || 0),
-      }))
-      .filter((p) => p.goals > 0)
-      .sort((a, b) => b.goals - a.goals);
-
-    return {
-      jugadoresActivos,
-      porcentajeActivos: participants.length
-        ? Math.round((jugadoresActivos / participants.length) * 100)
-        : 0,
-      totalGoles,
-      totalPlayers,
-      allScorers,
-    };
-  }, [calculatedRankings, participants, activities]);
-
-  // The gender and sport filters only live inside the scorers sheet; the home podium is always global
-  const scorers = useMemo(
-    () =>
-      calculatedRankings
-        .filter((p) => scorerGender === "all" || p.sexo === scorerGender)
-        .map((p) => ({
-          ...p,
-          goals:
-            scorerSport === "all"
-              ? (p.gf || 0) + (p.gh || 0) + (p.gb || 0)
-              : p[SPORT_FIELD[scorerSport]] || 0,
-        }))
-        .filter((p) => p.goals > 0)
-        .sort((a, b) => b.goals - a.goals),
-    [calculatedRankings, scorerGender, scorerSport],
-  );
-  const top3Scorers = stats.allScorers.slice(0, 3);
-
-  // The home podium is always by points: calculatedRankings follows the sheet's metric selector
-  const topByPoints = useMemo(
-    () =>
-      [...calculatedRankings]
-        .sort((a, b) => (b.total || 0) - (a.total || 0))
-        .slice(0, 3),
-    [calculatedRankings],
-  );
-
-  const invitacionRanking = useMemo(() => {
-    const counts: Record<
-      number,
-      { total: number; invitaciones: { inv: Invitacion; activity: Activity }[] }
-    > = {};
-
-    const actsToCount = selectedActivityIds.length > 0
-      ? (activities || []).filter((a) => selectedActivityIds.includes(a.id))
-      : (activities || []);
-
-    actsToCount.forEach((act) => {
-      (act.invitaciones || []).forEach((inv) => {
-        if (inv.invitador) {
-          if (!counts[inv.invitador]) {
-            counts[inv.invitador] = { total: 0, invitaciones: [] };
-          }
-          counts[inv.invitador].total += 1;
-          counts[inv.invitador].invitaciones.push({ inv, activity: act });
-        }
-      });
-    });
-
-    return (participants || [])
-      .map((p) => ({
-        ...p,
-        invitedCount: counts[p.id]?.total || 0,
-        invitaciones: counts[p.id]?.invitaciones || [],
-      }))
-      .filter((p) => p.invitedCount > 0)
-      .sort((a, b) => b.invitedCount - a.invitedCount);
-  }, [participants, activities, selectedActivityIds]);
-
-  const getInvitadosDetails = (
-    invitaciones: { inv: Invitacion; activity: Activity }[],
-  ) => {
-    return invitaciones
-      .map((item) => {
-        const invited = (participants || []).find(
-          (p) => p.id === item.inv.invitadoId,
-        );
-        if (!invited) return null;
-        return { invited, activity: item.activity };
-      })
-      .filter((item): item is NonNullable<typeof item> => item !== null);
-  };
+  const { participants, activities } = db;
 
   if (isLoading) {
     return (
       <div className="p-4 space-y-4">
-        <div className="grid grid-cols-3 gap-3">
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-20 rounded-xl" />
-          ))}
-        </div>
-        <Skeleton className="h-12 rounded-xl" />
-        <Skeleton className="h-12 rounded-xl" />
-        <Skeleton className="h-12 rounded-xl" />
+        <Skeleton className="h-28 rounded-3xl" />
+        <Skeleton className="h-40 rounded-3xl" />
+        <Skeleton className="h-16 rounded-3xl" />
       </div>
     );
   }
+
+  // From 00:00 (device time) an activity dated today is the current one; future ones are left out
+  const today = getTodayDateString();
+  const held = (activities || []).filter((a) => a.fecha <= today);
+  const current = held.reduce<Activity | null>(
+    (latest, a) => (!latest || a.fecha > latest.fecha ? a : latest),
+    null,
+  );
+  const totalGoles = (activities || []).reduce(
+    (acc, a) => acc + (a.goles || []).reduce((s, g) => s + g.cant, 0),
+    0,
+  );
 
   return (
     <MotionConfig reducedMotion="user">
@@ -361,8 +47,8 @@ export default function Page() {
           <div className="grid grid-cols-3 divide-x divide-border rounded-3xl border border-border bg-card py-5">
             {[
               { label: "Actividades", value: activities.length },
-              { label: "Jugadores", value: stats.totalPlayers },
-              { label: "Total Goles", value: stats.totalGoles },
+              { label: "Jugadores", value: (participants || []).length },
+              { label: "Total Goles", value: totalGoles },
             ].map((item) => (
               <div key={item.label} className="px-2 text-center">
                 <CountUp
@@ -377,243 +63,79 @@ export default function Page() {
           </div>
         </Reveal>
 
-        {/* ─── GOLEADORES ─── */}
-        <Reveal index={1} className="mb-8">
-          <SectionTitle
-            title="Goleadores"
-            onOpen={() => {
-              // Always open on the global list, so no hidden filter is left over from last time
-              setScorerGender("all");
-              setScorerSport("all");
-              setGoleadoresOpen(true);
-            }}
-          />
-          {top3Scorers.length === 0 ? (
-            <EmptyBlock text={scorersEmptyText("all", "all")} />
-          ) : (
-            <GroupedList>
-              {top3Scorers.map((p, i) => (
-                <LeaderRow
-                  key={p.id}
-                  p={p}
-                  pos={i + 1}
-                  value={p.goals}
-                  unit={p.goals === 1 ? "gol" : "goles"}
-                  max={top3Scorers[0].goals}
-                />
-              ))}
-            </GroupedList>
-          )}
-        </Reveal>
+        {current && (
+          <Reveal index={1} className="mb-8">
+            <CurrentActivityCard activity={current} isToday={current.fecha === today} />
+          </Reveal>
+        )}
 
-        {/* ─── PUNTAJE ─── */}
         <Reveal index={2} className="mb-8">
-          <SectionTitle title="Puntaje" onOpen={() => setRankingOpen(true)} />
-          {topByPoints.length === 0 ? (
-            <EmptyBlock text="Aún no hay participantes" />
-          ) : (
-            <GroupedList>
-              {topByPoints.map((p, i) => (
-                <LeaderRow
-                  key={p.id}
-                  p={p}
-                  pos={i + 1}
-                  value={p.total || 0}
-                  unit="pts"
-                  max={topByPoints[0].total || 0}
-                />
-              ))}
-            </GroupedList>
-          )}
+          <Link href="/podio" className={cn(cardLinkClass, "flex items-center gap-3 px-4 py-4")}>
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10">
+              <Trophy className="size-5 text-primary" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="text-lg font-black tracking-tight text-foreground">Podio</div>
+              <div className="text-xs font-bold text-muted-foreground">
+                Goleadores, puntaje e invitaciones
+              </div>
+            </div>
+            <ChevronRight className="size-5 shrink-0 text-muted-foreground" />
+          </Link>
         </Reveal>
 
-        {/* ─── INVITACIONES ─── */}
-        <Reveal index={3} className="mb-8">
-          <SectionTitle title="Invitaciones" onOpen={() => setInvitacionesOpen(true)} />
-          {invitacionRanking.length === 0 ? (
-            <EmptyBlock text="No hay invitaciones registradas" />
-          ) : (
-            <GroupedList>
-              {invitacionRanking.slice(0, 3).map((p, i) => (
-                <LeaderRow
-                  key={p.id}
-                  p={p}
-                  pos={i + 1}
-                  value={p.invitedCount}
-                  unit={p.invitedCount === 1 ? "invitado" : "invitados"}
-                  max={invitacionRanking[0].invitedCount}
-                />
-              ))}
-            </GroupedList>
-          )}
-        </Reveal>
+        {held.length > 0 && (
+          <Reveal index={3} className="mb-8">
+            <h2 className="mb-3 text-xl font-black tracking-tight text-foreground">Asistencia</h2>
+            <AttendanceChart activities={held} />
+          </Reveal>
+        )}
       </div>
-
-      {/* ─── SHEET: GOLEADORES ─── */}
-      <DetailSheet
-        open={goleadoresOpen}
-        onOpenChange={setGoleadoresOpen}
-        title="Goleadores"
-      >
-        <SegmentedControl
-          id="scorer-gender-sheet"
-          value={scorerGender}
-          onChange={setScorerGender}
-          options={SCORER_GENDERS}
-        />
-        <SegmentedControl
-          id="scorer-sport-sheet"
-          value={scorerSport}
-          onChange={setScorerSport}
-          options={SCORER_SPORTS}
-        />
-        {scorers.length === 0 ? (
-          <Empty text={scorersEmptyText(scorerGender, scorerSport)} />
-        ) : (
-          <GroupedList>
-            {scorers.map((p, i) => (
-              <LeaderRow
-                key={p.id}
-                p={p}
-                pos={i + 1}
-                value={p.goals}
-                unit={p.goals === 1 ? "gol" : "goles"}
-                max={scorers[0].goals}
-              />
-            ))}
-          </GroupedList>
-        )}
-      </DetailSheet>
-
-      {/* ─── SHEET: RANKING ─── */}
-      <DetailSheet
-        open={rankingOpen}
-        onOpenChange={(open) => {
-          setRankingOpen(open);
-          if (!open) setRankingView("list");
-        }}
-        title="Puntaje"
-      >
-        {rankingView === "detail" && selectedRankingPlayer ? (
-          <RankingDetailView
-            player={selectedRankingPlayer}
-            activities={activities}
-            participants={participants}
-            onBack={() => setRankingView("list")}
-          />
-        ) : (
-          <>
-            <SegmentedControl
-              id="ranking-metric"
-              value={rankingMetric}
-              onChange={setRankingMetric}
-              options={RANKING_METRICS.map((metric) => ({
-                key: metric.key,
-                label: metric.label,
-                Icon: metric.Icon,
-              }))}
-            />
-
-            {calculatedRankings.length === 0 ? (
-              <Empty text="Aún no hay participantes" />
-            ) : (
-              <GroupedList>
-                {calculatedRankings.map((p, i) => (
-                  <LeaderRow
-                    key={p.id}
-                    p={p}
-                    pos={i + 1}
-                    value={p[rankingMetric] || 0}
-                    unit={rankingMetric === "total" ? "pts" : "asist."}
-                    max={calculatedRankings[0][rankingMetric] || 0}
-                    onClick={
-                      rankingMetric === "total"
-                        ? () => {
-                            setSelectedRankingPlayer(p);
-                            setRankingView("detail");
-                          }
-                        : undefined
-                    }
-                  />
-                ))}
-              </GroupedList>
-            )}
-          </>
-        )}
-      </DetailSheet>
-
-      {/* ─── SHEET: INVITACIONES ─── */}
-      <DetailSheet
-        open={invitacionesOpen}
-        onOpenChange={setInvitacionesOpen}
-        title="Invitaciones"
-      >
-        {/* Activity filter: pills, newest first; none selected = all activities */}
-        {activities.length > 0 && (
-          <ChipFilter
-            allLabel="Todas"
-            options={[...activities]
-              .sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime())
-              .map((act) => ({ id: act.id, label: act.titulo || formatDate(act.fecha) }))}
-            selected={selectedActivityIds}
-            onChange={setSelectedActivityIds}
-          />
-        )}
-
-        {invitacionRanking.length === 0 ? (
-          <Empty text="No hay invitaciones registradas" />
-        ) : (
-          <GroupedList>
-            {invitacionRanking.map((p, i) => (
-              <LeaderRow
-                key={p.id}
-                p={p}
-                pos={i + 1}
-                value={p.invitedCount}
-                unit={p.invitedCount === 1 ? "invitado" : "invitados"}
-                max={invitacionRanking[0].invitedCount}
-                onClick={() => {
-                  setInvitacionesOpen(false);
-                  setSelectedInviter(p);
-                }}
-              />
-            ))}
-          </GroupedList>
-        )}
-      </DetailSheet>
-
-      {/* ─── MODALS ─── */}
-      {selectedInviter && (
-        <DetailSheet
-          open={!!selectedInviter}
-          onOpenChange={(open) => !open && setSelectedInviter(null)}
-          title={`${selectedInviter.nombre} ${selectedInviter.apellido}`}
-        >
-          <div className="text-sm text-text-muted mb-4">
-            {selectedInviter.invitedCount} invitados
-          </div>
-          <GroupedList>
-            {getInvitadosDetails(selectedInviter.invitaciones).map(
-              (detail, i) => (
-                <div key={i} className="flex items-center gap-3 px-4 py-3">
-                  <Avatar p={detail.invited} size={40} />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-base font-bold leading-tight text-foreground">
-                      {detail.invited.nombre} {detail.invited.apellido}
-                    </div>
-                    {detail.activity && (
-                      <div className="mt-0.5 text-xs text-muted-foreground">
-                        {detail.activity.titulo ||
-                          formatDate(detail.activity.fecha)}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ),
-            )}
-          </GroupedList>
-        </DetailSheet>
-      )}
     </MotionConfig>
+  );
+}
+
+/** Today's activity (all zeros until data is loaded) or, when there is none today, the latest one. */
+function CurrentActivityCard({ activity, isToday }: { activity: Activity; isToday: boolean }) {
+  const stats = [
+    { label: "Presentes", value: (activity.asistentes || []).length },
+    { label: "Puntuales", value: (activity.puntuales || []).length },
+    { label: "Biblias", value: (activity.biblias || []).length },
+    { label: "Social", value: (activity.socials || []).length },
+    { label: "Goles", value: (activity.goles || []).reduce((s, g) => s + g.cant, 0) },
+    { label: "Invitados", value: (activity.invitaciones || []).length },
+  ];
+
+  return (
+    <Link href={`/activities/${activity.id}`} className={cn(cardLinkClass, "p-4")}>
+      <div className="mb-4 flex items-start gap-3">
+        <div className="min-w-0 flex-1">
+          <div
+            className={cn(
+              "text-xs font-black uppercase tracking-wide",
+              isToday ? "text-primary" : "text-muted-foreground",
+            )}
+          >
+            {isToday ? "Hoy" : "Última actividad"}
+          </div>
+          <div className="mt-1 truncate text-lg font-black tracking-tight text-foreground">
+            {activity.titulo || "Actividad"}
+          </div>
+          <div className="text-xs font-bold text-muted-foreground">{formatDate(activity.fecha)}</div>
+        </div>
+        <ChevronRight className="mt-1 size-5 shrink-0 text-muted-foreground" />
+      </div>
+      <div className="grid grid-cols-3 gap-y-4">
+        {stats.map((item) => (
+          <div key={item.label} className="text-center">
+            <CountUp
+              value={item.value}
+              className="block text-2xl font-black tracking-tight text-foreground"
+            />
+            <div className="mt-0.5 text-xs font-bold text-muted-foreground">{item.label}</div>
+          </div>
+        ))}
+      </div>
+    </Link>
   );
 }
