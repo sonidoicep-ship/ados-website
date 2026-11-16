@@ -85,7 +85,7 @@ test.describe("Activities", () => {
 
     await titleInput.fill(nextTitle);
     await page.getByRole("button", { name: "Listo" }).click();
-    await expect(page.getByText(nextTitle)).toBeVisible();
+    await expect(page.getByRole("heading", { name: nextTitle })).toBeVisible();
     await expect(page.locator("[data-sonner-toast]")).toHaveCount(0);
   });
 
@@ -102,7 +102,8 @@ test.describe("Activities", () => {
       return;
     }
 
-    await activitiesPage.clickFirstActivity();
+    // Last, not first: the autosave test edits the first activity in parallel and would get a 403 while locked
+    await activitiesPage.activityList.last().click();
     await expect(page).toHaveURL(/\/activities\/\d+\/asistencia/);
 
     const editUrl = page.url().replace(/\/activities\/(\d+)(?:\/.*)?$/, "/activities/$1/general");
