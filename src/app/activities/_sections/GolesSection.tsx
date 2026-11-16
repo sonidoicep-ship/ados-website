@@ -406,7 +406,7 @@ export function GolesSection() {
                 <span className="text-base font-bold text-muted-foreground">goles</span>
               </div>
             </Reveal>
-            {isAdmin && (
+            {isAdmin && !locked && (
               <Button onClick={startEditing} variant="ghost" size="sm" className={toolbarButtonClass}>
                 Editar
               </Button>

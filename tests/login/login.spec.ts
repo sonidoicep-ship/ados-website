@@ -57,7 +57,7 @@ test.describe("Login", () => {
   );
 
   test(
-    "User can toggle admin/viewer mode by double-clicking lock icon",
+    "User can toggle the admin/viewer selector",
     { tag: ["@high", "@e2e", "@login", "@LOGIN-E2E-002"] },
     async () => {
       await loginPage.goto();
@@ -65,10 +65,10 @@ test.describe("Login", () => {
       const adminToggle = loginPage.adminToggle;
       await expect(adminToggle).not.toBeVisible();
 
-      await loginPage.lockIcon.dblclick();
+      await loginPage.roleSelectorToggle.click();
       await expect(adminToggle).toBeVisible();
 
-      await loginPage.lockIcon.dblclick();
+      await loginPage.roleSelectorToggle.click();
       await expect(adminToggle).not.toBeVisible();
     },
   );

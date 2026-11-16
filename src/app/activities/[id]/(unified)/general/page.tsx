@@ -150,11 +150,13 @@ export default function GeneralPage() {
 
   const handleLockToggle = async () => {
     const newLocked = !locked;
-    if (newLocked && !(await confirmDialog("¿Bloquear actividad? No se podrá editar hasta desbloquear."))) return;
-    if (!newLocked && !(await confirmDialog("¿Desbloquear actividad? Se habilitará la edición."))) return;
+    if (newLocked && !(await confirmDialog("¿Bloquear actividad? No se podrá editar hasta desbloquear.", { confirmText: "Bloquear", isDestructive: false }))) return;
+    if (!newLocked && !(await confirmDialog("¿Desbloquear actividad? Se habilitará la edición.", { confirmText: "Desbloquear", isDestructive: false }))) return;
 
     try {
       await performQuickUpdate("config", { k: "locked", v: newLocked, prev: locked });
+      // A locked activity hides "Listo", so leave edit mode instead of getting stuck in it
+      if (newLocked) setEditing(false);
       toast.success(newLocked ? "Actividad bloqueada" : "Actividad desbloqueada");
     } catch {
       // activity-context already reports the error
@@ -293,7 +295,8 @@ export default function GeneralPage() {
                 {locked ? "Solo lectura para todos" : "Admins pueden editar"}
               </p>
             </div>
-            {editing && isAdmin && (
+            {/* Outside edit mode on purpose: "Editar" is hidden while locked, so this is the only way to unlock */}
+            {isAdmin && (
               <Switch
                 checked={!locked}
                 onCheckedChange={handleLockToggle}

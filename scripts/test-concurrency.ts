@@ -89,7 +89,19 @@ const legacyFresh = await patch({ activityId: act.id, type: "game_pos", version:
 console.log(`(e) legacy stale=${legacyStale.map((r) => r.status).join(",")} legacy current version=${legacyFresh.status}`);
 const passE = legacyStale.every((r) => r.status === 409) && legacyFresh.status === 200;
 
-const pass = passA && passB && passC && passD && passE;
+// (f) a locked activity rejects full saves and deletes, but still accepts the unlock
+const send = (method: "POST" | "DELETE", body: unknown) => route[method](new NextRequest("http://x/api/activities", { method, headers: { cookie, "content-type": "application/json" }, body: JSON.stringify(body) }));
+await db.update(schema.activities).set({ locked: true }).where(eq(schema.activities.id, act.id));
+const [lockedAct] = await db.select().from(schema.activities).where(eq(schema.activities.id, act.id));
+const lockedSave = await send("POST", { isNew: false, data: { id: act.id, fecha: lockedAct.fecha, titulo: "z", version: lockedAct.version } });
+const lockedDelete = await send("DELETE", { id: act.id });
+const kept = (await db.select().from(schema.activities).where(eq(schema.activities.id, act.id))).length === 1;
+const unlock = await patch({ activityId: act.id, type: "config", version: lockedAct.version, data: { k: "locked", v: false, prev: true } });
+const deleteAfterUnlock = await send("DELETE", { id: act.id });
+console.log(`(f) locked save=${lockedSave.status} locked delete=${lockedDelete.status} kept=${kept} unlock=${unlock.status} delete after unlock=${deleteAfterUnlock.status}`);
+const passF = lockedSave.status === 403 && lockedDelete.status === 403 && kept && unlock.status === 200 && deleteAfterUnlock.status === 200;
+
+const pass = passA && passB && passC && passD && passE && passF;
 console.log(pass ? "PASS" : "FAIL");
 process.exit(pass ? 0 : 1);
 
